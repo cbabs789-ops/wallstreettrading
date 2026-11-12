@@ -6,7 +6,7 @@ Paper trading only. Not financial advice.
 
 The platform works end to end on live data and is tested:
 
-- **Tests:** 51 offline tests and 6 live-source tests pass.
+- **Tests:** 50 offline tests and 6 live-source tests pass.
 - **Integrated session:** the full 10-step session runs clean on an empty database.
 - **Daily pipeline:** `daily` runs in about 2 minutes and does nothing twice.
 
