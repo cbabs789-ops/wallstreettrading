@@ -23,6 +23,20 @@ look-ahead; then wrote a test for each fix. Ranked by how much damage the proble
 | 14 | FRED silently dropped our requests | Each failure burned ~100 s of retries | Contact-style User-Agent for government sources |
 | 15 | Log file grew without limit | Disk fills on a long-running server | Rotating log, 5 x 5 MB |
 
+## Telegram and server (added Nov 12, each tested)
+
+- Only the owner's chat id is obeyed; other chats are ignored and logged. Buttons carry a per-proposal random token.
+- Approval is atomic (pending to approving in one update), so a double tap can't place two orders.
+- Approval re-checks price drift (2%), expiry, earnings within 4 days and every risk limit before ordering.
+- The bot token never appears in errors or logs (the request URL contains it, so errors are rewritten).
+- Every Telegram message is HTML-escaped; only http/https links are allowed.
+- The dashboard refuses to listen beyond the machine without a key, and returns 403 without it. It is plain HTTP:
+  fine for paper data, not for a real account (use a VPN such as Tailscale before anything real is shown).
+- Stats publishing refuses to upload any file containing the value of a secret setting.
+- The systemd service runs as its own user, with a read-only system, access only to its data folder, and a 700 MB memory cap.
+- End-to-end test of the real service against a fake Telegram API found and fixed one crash: a parameter-name clash
+  killed the polling thread on its first call. The loop now survives any unexpected error.
+
 ## Verified safe
 
 - **No real order path:** tests fail if the Schwab module gains an order method or any module besides `paper.py` writes orders.

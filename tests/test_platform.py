@@ -213,12 +213,12 @@ class AlertsAndAutopilot(unittest.TestCase):
         wf = {"rsi2_reversion": {"verdict": "pass"}, "trend_pullback": {"verdict": "fail"}}
         cards = [self.card(), self.card(symbol="MSFT", strategy="trend_pullback"), self.card(symbol="NVDA", signal_age_days=2),
                  self.card(symbol="CSCO", catalyst={"earnings_soon": True})]
-        orders, skipped = autopilot.run(con, br, cards, wf)
+        orders, skipped = autopilot.run(con, br, cards, wf, "auto")
         self.assertEqual([o["symbol"] for o in orders], ["AAPL"])
         self.assertEqual(orders[0]["status"], "filled")
         self.assertEqual({s for s, _ in skipped}, {"MSFT", "NVDA", "CSCO"})
         self.assertIsNone(orders[0]["target_price"])                # sma5-exit strategy: no fixed target, like the backtest
-        again, _ = autopilot.run(con, br, cards, wf)
+        again, _ = autopilot.run(con, br, cards, wf, "auto")
         self.assertEqual(again[0]["id"], orders[0]["id"])
         self.assertEqual(con.execute("SELECT COUNT(*) FROM orders WHERE status='filled'").fetchone()[0], 1)
 

@@ -8,12 +8,30 @@ Rules (all must hold):
   - no earnings due within 4 days (gap risk the stop can't control)
   - the risk department approves the size
 Orders go only to the paper broker. Each setup has a fixed client id, so re-running never doubles an order.
-Turn it off with PWS_AUTOTRADE=0.
+
+Modes (PWS_AUTOPILOT_MODE, or /mode in Telegram, which wins):
+  approve  (default) each qualifying setup becomes a proposal; nothing is ordered until you tap Approve
+  auto     orders are placed straight away (paper only)
+  off      setups are reported, nothing else
 """
-from . import config, risk
+from . import approvals, config, db, risk
 
 MIN_SCORE = config.env("PWS_AUTO_MIN_SCORE", 0, float)
-ENABLED = config.env("PWS_AUTOTRADE", 1, int) == 1
+MODES = ("approve", "auto", "off")
+
+
+def mode(con):
+    m = db.kv_get(con, "autopilot_mode") or config.env("PWS_AUTOPILOT_MODE", "approve")
+    if config.env("PWS_AUTOTRADE", 1, int) == 0:
+        m = "off"
+    return m if m in MODES else "approve"
+
+
+def set_mode(con, m):
+    if m not in MODES:
+        raise ValueError("mode must be one of %s" % ", ".join(MODES))
+    db.kv_set(con, "autopilot_mode", m)
+    db.audit(con, "autopilot", "mode", {"mode": m})
 
 
 def candidates(cards, wf_results):
@@ -32,20 +50,27 @@ def candidates(cards, wf_results):
     return out, skipped
 
 
-def run(con, broker, cards, wf_results):
-    """Returns (orders, skipped) where skipped is [(symbol, reason)]."""
-    if not ENABLED:
+def run(con, broker, cards, wf_results, mode_=None):
+    """Returns (results, skipped). results are orders in 'auto' mode and proposals in 'approve' mode (each has 'kind').
+    skipped is [(symbol, reason)]."""
+    m = mode_ or mode(con)
+    if m == "off":
         return [], [(c["symbol"], "autopilot off") for c in cards]
     go, skipped = candidates(cards, wf_results)
-    orders = []
+    out = []
     for c, _ in go:
         st = broker.state()
         qty = risk.size_for_risk(st["equity"], c["price"], c["stop"], st["cash"])
         if qty <= 0:
             skipped.append((c, "position size rounds to zero"))
             continue
+        if m == "approve":
+            p = approvals.propose(con, c, qty)
+            if p:
+                out.append(p | {"kind": "proposal"})
+            continue
         o = broker.submit(c["symbol"], "buy", qty, stop=c["stop"], target=None if c["exit_rule"] == "sma5" else c["targets"][0],
                           client_id="auto-%s-%s-%s" % (c["symbol"], c["strategy"], c["signal_time"]), strategy=c["strategy"],
                           evidence={"score": c["score"], "confidence": c["confidence"], "params": c["params"]})
-        orders.append(o)
-    return orders, [(c["symbol"], why) for c, why in skipped]
+        out.append(o | {"kind": "order"})
+    return out, [(c["symbol"], why) for c, why in skipped]

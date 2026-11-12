@@ -16,6 +16,14 @@
   sell SYM QTY       simulated market sell
   exits              apply stops, targets and strategy exit rules to open paper positions
   demo               the full 10-step simulated session
+
+Server and Telegram:
+  run                the always-on service: Telegram bot, schedule, dashboard, stats publishing
+  setup-telegram     find your chat id after you message the bot (the installer uses this)
+  mode [approve|auto|off]   show or set how the autopilot trades
+  pending            trades waiting for approval
+  approve ID / reject ID    decide a proposal from the command line
+  publish            push a stats snapshot to GitHub now
 """
 import json
 import logging
@@ -23,7 +31,7 @@ import logging.handlers
 import sys
 import time
 
-from . import alerts, autopilot, backtest, briefing, catalysts, config, dashboard, db, performance, risk
+from . import alerts, approvals, autopilot, backtest, briefing, catalysts, config, dashboard, db, performance, risk
 from .analysis import regime as regime_mod
 from .broker.paper import OrderError, PaperBroker
 from .data import calendar, fed, news, prices, sec, thirteenf
@@ -233,9 +241,17 @@ def _daily(con, quiet=False):
     cards = scan(con, ok, wf)
     db.kv_set(con, "last_scan", cards)
     say("Scanner: %d setups (%d new predictions)" % (len(cards), sum(1 for c in cards if c.get("new"))))
-    orders, skipped = autopilot.run(con, broker, cards, wf)
-    say("Paper autopilot: %d orders (%s filled)%s" % (len(orders), sum(o["status"] == "filled" for o in orders),
-                                                      "; skipped " + ", ".join("%s (%s)" % s for s in skipped[:6]) if skipped else ""))
+    results, skipped = autopilot.run(con, broker, cards, wf)
+    m = autopilot.mode(con)
+    if m == "approve":
+        say("Paper autopilot (approve mode): %d new proposals waiting for you%s" % (
+            len(results), "; skipped " + ", ".join("%s (%s)" % s for s in skipped[:6]) if skipped else ""))
+    else:
+        say("Paper autopilot (%s mode): %d orders (%s filled)%s" % (m, len(results), sum(o.get("status") == "filled" for o in results),
+                                                                   "; skipped " + ", ".join("%s (%s)" % s for s in skipped[:6]) if skipped else ""))
+    expired = approvals.expire_old(con)
+    if expired:
+        say("Proposals expired without a decision: %d" % len(expired))
     st = broker.mark()
     cats = {s: catalysts.for_symbol(con, s) for s in ok if risk.sector(s) != "Index"}
     new_alerts = alerts.generate(con, cards, exits, st, cats)
@@ -245,6 +261,7 @@ def _daily(con, quiet=False):
     rp, _ = performance.monthly_report(con, wf)
     say("Wrote %s, %s, %s" % (p, d, rp))
     say("Done in %.0fs" % (time.time() - t0))
+    db.kv_set(con, "daily_last", {"at": int(time.time()), "date": time.strftime("%Y-%m-%d")})
     db.audit(con, "daily", "run", {"lines": log_lines})
     return cards
 
@@ -323,8 +340,9 @@ def cmd_demo(con):
     o2 = br.submit(best["symbol"], "buy", qty, stop=best["stop"], client_id=cid)
     print("   Same order resent (network retry): %s" % ("ignored, no second fill" if o2["id"] == o["id"] else "DUPLICATE FILL"))
     if not demo:
-        orders, skipped = autopilot.run(con, br, cards, wf)
-        print("   Autopilot: %d orders; skipped %s" % (len(orders), ", ".join("%s (%s)" % s for s in skipped[:5]) or "none"))
+        results, skipped = autopilot.run(con, br, cards, wf)
+        print("   Autopilot (%s mode): %d %s; skipped %s" % (autopilot.mode(con), len(results), "proposals" if autopilot.mode(con) == "approve" else "orders",
+                                                         ", ".join("%s (%s)" % s for s in skipped[:5]) or "none"))
     print("\n8) PORTFOLIO")
     st = br.mark()
     print("   Cash $%.2f · equity $%.2f · total return %+.2f%% · drawdown %.2f%%" % (st["cash"], st["equity"], st["total_return_pct"], st["drawdown_pct"]))
@@ -422,6 +440,32 @@ def main(argv=None):
             print(json.dumps(PaperBroker(con).check_exits(), indent=2, default=str))
         elif cmd == "demo":
             cmd_demo(con)
+        elif cmd == "run":
+            con.close()
+            from . import service
+            return service.run()
+        elif cmd == "setup-telegram":
+            from . import telegram as tg
+            chat = tg.setup_chat(config.env("TELEGRAM_BOT_TOKEN"))
+            if not chat:
+                print("No message found. Send your bot a message in Telegram first.")
+                return 1
+            print(chat)
+        elif cmd == "mode":
+            if len(argv) > 1:
+                autopilot.set_mode(con, argv[1])
+            print(autopilot.mode(con))
+        elif cmd == "pending":
+            for p in approvals.pending(con):
+                print("#%d %s %s qty~%s price %.2f stop %.2f expires %s" % (p["id"], p["side"], p["symbol"], p["qty"], p["price"], p["stop"],
+                                                                         time.strftime("%a %H:%M", time.localtime(p["expires_at"] / 1000))))
+        elif cmd in ("approve", "reject"):
+            pid = int(argv[1])
+            p, changed = (approvals.approve(con, PaperBroker(con), pid) if cmd == "approve" else approvals.reject(con, pid, who="command line"))
+            print("%s: %s %s" % ("done" if changed else "unchanged", p["status"], p["note"] or "") if p else "no such proposal")
+        elif cmd == "publish":
+            from . import stats
+            print("Published %d files" % stats.publish(con) if stats.configured() else "Set PWS_STATS_TOKEN and PWS_STATS_REPO first.")
         else:
             print(__doc__)
     except (OrderError, DataError) as e:

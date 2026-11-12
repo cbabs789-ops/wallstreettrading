@@ -1,0 +1,25 @@
+[Unit]
+Description=Wall Street paper-trading platform (Telegram bot, schedule, dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=wallstreet
+WorkingDirectory=/opt/wallstreet
+EnvironmentFile=/etc/wallstreet.env
+Environment=PWS_ENV_FILE=/etc/wallstreet.env
+Environment=TZ=America/New_York
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m wallstreet run
+Restart=always
+RestartSec=15
+# Hardening: it only needs its own data folder
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/wallstreet
+PrivateTmp=true
+MemoryMax=700M
+
+[Install]
+WantedBy=multi-user.target

@@ -21,6 +21,7 @@ from .briefing import gather
 
 HOST = config.env("PWS_DASH_HOST", "127.0.0.1")
 PORT = config.env("PWS_DASH_PORT", 8765, int)
+KEY = config.env("PWS_DASH_KEY")                         # required whenever the dashboard listens beyond this machine
 
 PAGE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -150,7 +151,7 @@ function render(g){
 }
 var raw=document.getElementById("state").textContent;
 if(raw&&raw.trim()&&raw.indexOf("__STATE")<0){render(JSON.parse(raw));}
-else{var load=function(){fetch("/api/state",{cache:"no-store"}).then(function(r){return r.json();}).then(render).catch(function(e){document.getElementById("note").textContent="Could not load state: "+e;});};load();setInterval(load,60000);}
+else{var k=new URLSearchParams(location.search).get("k")||"";var load=function(){fetch("/api/state?k="+encodeURIComponent(k),{cache:"no-store"}).then(function(r){return r.json();}).then(render).catch(function(e){document.getElementById("note").textContent="Could not load state: "+e;});};load();setInterval(load,60000);}
 })();
 </script></body></html>
 """
@@ -202,8 +203,19 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    key = None
+
+    def _authorized(self):
+        if not self.key:
+            return True
+        from urllib.parse import parse_qs, urlparse
+        got = (parse_qs(urlparse(self.path).query).get("k") or [""])[0]
+        return secrets.compare_digest(got.encode(), self.key.encode())
+
     def do_GET(self):
         path = self.path.split("?")[0]
+        if path in ("/", "/api/state") and not self._authorized():
+            return self._send(403, b"forbidden: add ?k=<your key> (send /site to the Telegram bot)", "text/plain")
         if path == "/":
             html, nonce = page(None)
             return self._send(200, html.encode(), "text/html; charset=utf-8", nonce)
@@ -225,11 +237,19 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     do_POST = do_PUT = do_DELETE = do_PATCH = _no
 
 
+def make_server(host=HOST, port=PORT, key=None):
+    key = key if key is not None else KEY
+    if host not in ("127.0.0.1", "localhost", "::1") and not key:
+        raise SystemExit("Refusing to serve the dashboard on %s without PWS_DASH_KEY." % host)
+    handler = type("Handler", (_Handler,), {"key": key})
+    return http.server.ThreadingHTTPServer((host, port), handler)
+
+
 def serve(host=HOST, port=PORT):
-    srv = http.server.ThreadingHTTPServer((host, port), _Handler)
+    srv = make_server(host, port)
     print("Dashboard on http://%s:%d (read-only). Ctrl+C to stop." % (host, port))
     if host not in ("127.0.0.1", "localhost", "::1"):
-        print("WARNING: listening beyond this machine. There is no login; put it behind a VPN or an authenticating proxy.")
+        print("Listening beyond this machine, protected by the dashboard key (plain HTTP: fine for paper data, not for real accounts).")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

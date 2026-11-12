@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def _load_env_file():
-    f = ROOT / ".env"
+    f = Path(os.environ.get("PWS_ENV_FILE") or ROOT / ".env")   # the server uses /etc/wallstreet.env
     if f.exists():
         for line in f.read_text().splitlines():
             line = line.strip()
