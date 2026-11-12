@@ -18,8 +18,10 @@ Tokens are stored in var/schwab_tokens.json with owner-only file permissions and
 import base64
 import json
 import os
+import secrets
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -43,9 +45,18 @@ def _creds():
     return key, secret, os.environ.get("SCHWAB_CALLBACK_URL", "https://127.0.0.1")
 
 
+STATE_FILE = config.DATA_DIR / "schwab_oauth_state"
+
+
 def login_url():
+    """Login link with a one-time random `state`, checked on return so a forged redirect can't plant someone else's login."""
     key, _, cb = _creds()
-    return AUTH_URL + "?" + urllib.parse.urlencode({"client_id": key, "redirect_uri": cb})
+    state = secrets.token_urlsafe(24)
+    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    fd = os.open(STATE_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(state)
+    return AUTH_URL + "?" + urllib.parse.urlencode({"client_id": key, "redirect_uri": cb, "state": state})
 
 
 def _token_request(data):
@@ -53,8 +64,13 @@ def _token_request(data):
     basic = base64.b64encode(("%s:%s" % (key, secret)).encode()).decode()
     req = urllib.request.Request(TOKEN_URL, data=urllib.parse.urlencode(data).encode(),
                                  headers={"Authorization": "Basic " + basic, "Content-Type": "application/x-www-form-urlencoded"})
-    with urllib.request.urlopen(req, timeout=20) as r:
-        tok = json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            tok = json.loads(r.read())
+    except urllib.error.HTTPError as e:                  # never echo the response body: it can contain token material
+        raise SchwabDisabled("Schwab token request failed (HTTP %s). Log in again." % e.code) from None
+    except (urllib.error.URLError, TimeoutError, ValueError) as e:
+        raise SchwabDisabled("Schwab token request failed: %s" % type(e).__name__) from None
     tok["obtained_at"] = int(time.time())
     if "refresh_token" in tok:
         tok["refresh_obtained_at"] = tok["obtained_at"]
@@ -64,6 +80,8 @@ def _token_request(data):
 def _save(tok):
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     tmp = TOKEN_FILE.with_suffix(".tmp")
+    if tmp.exists():
+        tmp.unlink()                                     # O_CREAT keeps an old file's permissions; start fresh
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as f:
         json.dump(tok, f)
@@ -78,9 +96,14 @@ def _load():
 
 def finish_login(redirected_url):
     _, _, cb = _creds()
-    code = urllib.parse.parse_qs(urllib.parse.urlparse(redirected_url).query).get("code", [None])[0]
+    qs = urllib.parse.parse_qs(urllib.parse.urlparse(redirected_url).query)
+    code = qs.get("code", [None])[0]
     if not code:
         raise SchwabDisabled("no ?code= in that URL")
+    expected = STATE_FILE.read_text().strip() if STATE_FILE.exists() else None
+    if not expected or not secrets.compare_digest(expected, qs.get("state", [""])[0]):
+        raise SchwabDisabled("login state doesn't match: start again with a fresh login link")
+    STATE_FILE.unlink()
     _save(_token_request({"grant_type": "authorization_code", "code": code, "redirect_uri": cb}))
 
 
@@ -120,8 +143,22 @@ def movers(index="$SPX", sort="PERCENT_CHANGE_UP"):
     return _get(MD + "/movers/" + urllib.parse.quote(index), {"sort": sort})
 
 
+def mask(number):
+    s = str(number or "")
+    return "****" + s[-4:] if len(s) > 4 else "****"
+
+
 def accounts():
-    return _get(TRADER + "/accounts", {"fields": "positions"})
+    """Balances and positions with every account number masked to its last 4 digits before it leaves this module."""
+    data = _get(TRADER + "/accounts", {"fields": "positions"})
+
+    def scrub(x):
+        if isinstance(x, dict):
+            return {k: (mask(v) if "accountnumber" in k.lower() or k.lower() == "hashvalue" else scrub(v)) for k, v in x.items()}
+        if isinstance(x, list):
+            return [scrub(v) for v in x]
+        return x
+    return scrub(data)
 
 
 if __name__ == "__main__":

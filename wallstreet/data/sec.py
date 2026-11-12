@@ -38,13 +38,28 @@ ITEMS_8K = {"1.01": "material agreement", "1.02": "agreement terminated", "2.01"
             "7.01": "Reg FD disclosure", "8.01": "other events", "9.01": "exhibits"}
 
 _cik_cache = {}
+_title_cache = {}
 
 
-def cik_for(symbol):
+def _load_tickers():
     if not _cik_cache:
         data = get(TICKERS)
         for row in data.values():
             _cik_cache[str(row["ticker"]).upper()] = int(row["cik_str"])
+            _title_cache[str(row["ticker"]).upper()] = row["title"]
+
+
+def title_for(symbol):
+    """Company name as the SEC lists it, or None (e.g. ETFs)."""
+    try:
+        _load_tickers()
+    except DataError:
+        return None
+    return _title_cache.get(symbol.upper().replace(".", "-"))
+
+
+def cik_for(symbol):
+    _load_tickers()
     c = _cik_cache.get(symbol.upper().replace(".", "-"))
     if c is None:
         raise DataError("no SEC CIK for %s (ETFs and funds don't file like companies)" % symbol)

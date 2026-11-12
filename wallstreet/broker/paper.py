@@ -15,6 +15,7 @@ from ..data import prices
 
 log = logging.getLogger("pws.paper")
 MAX_QUOTE_AGE_S = 4 * 86400          # a quote older than this (e.g. over a long weekend + holiday) is refused
+MAX_QUOTE_JUMP = 0.30                                    # a quote 30%+ from yesterday's close is checked, not traded
 
 
 class OrderError(Exception):
@@ -72,6 +73,10 @@ class PaperBroker:
         age = time.time() - q["quote_time"]
         if age > MAX_QUOTE_AGE_S:
             raise OrderError("latest %s quote is %.1f days old: refresh prices first" % (symbol, age / 86400))
+        last = self.con.execute("SELECT close FROM bars WHERE symbol=? AND interval='1d' ORDER BY ts DESC LIMIT 1", (symbol,)).fetchone()
+        if last and last[0] > 0 and abs(q["price"] / last[0] - 1) > MAX_QUOTE_JUMP:
+            raise OrderError("%s quote %.2f is %.0f%% from the last close %.2f: looks like bad data, order refused" % (
+                symbol, q["price"], abs(q["price"] / last[0] - 1) * 100, last[0]))
         return q
 
     def submit(self, symbol, side, qty, stop=None, target=None, client_id=None, strategy="manual", evidence=None):
@@ -134,7 +139,11 @@ class PaperBroker:
         return row
 
     def check_exits(self):
-        """Sell any position whose latest quote is at/through its stop or target. Returns the orders placed."""
+        """Sell positions whose exit rule triggered. Returns the orders placed.
+        Stop and target use the latest quote. Strategy rules use finished daily bars, as in the backtest:
+        the time limit (trading days held) and, for the oversold-bounce strategy, a close above the 5-day average."""
+        from ..strategies import EXIT_RULES
+        from ..analysis import indicators as ind
         done = []
         for p in self.positions():
             why = None
@@ -142,7 +151,18 @@ class PaperBroker:
                 why = "stop hit (%.2f <= %.2f)" % (p["last"], p["stop_price"])
             elif p["target_price"] and p["last"] >= p["target_price"]:
                 why = "target hit (%.2f >= %.2f)" % (p["last"], p["target_price"])
+            rule = EXIT_RULES.get(p["strategy"])
+            if not why and rule:
+                b = [x for x in prices.bars(self.con, p["symbol"])]
+                held_bars = [x for x in b if x[0] * 1000 > p["opened_at"]]
+                if len(held_bars) >= rule["max_hold"]:
+                    why = "time limit (%d trading days)" % rule["max_hold"]
+                elif rule.get("exit_above_sma5") and held_bars:
+                    s5 = ind.sma([x[4] for x in b], 5)[-1]
+                    if s5 and b[-1][4] > s5:
+                        why = "closed above 5-day average (%.2f > %.2f)" % (b[-1][4], s5)
             if why:
                 cid = "exit-%s-%s" % (p["symbol"], p["quote_time"])        # one exit per quote, even if called twice
-                done.append(self.submit(p["symbol"], "sell", p["qty"], client_id=cid, strategy=p["strategy"], evidence={"exit": why}))
+                o = self.submit(p["symbol"], "sell", p["qty"], client_id=cid, strategy=p["strategy"], evidence={"exit": why})
+                done.append(o | {"why": why})
         return done

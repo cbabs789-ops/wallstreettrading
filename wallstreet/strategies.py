@@ -52,3 +52,7 @@ STRATEGIES = {
     "rsi2_reversion": (rsi2_reversion, "Short-term oversold bounce above the 200-day",
                        [{"rsi2": r, "stop_atr": s} for r in (5, 10, 15) for s in (2.0, 3.0)]),
 }
+
+# Exit rules the paper broker enforces on open positions (must match each strategy's signal dict above).
+EXIT_RULES = {"trend_pullback": {"max_hold": 20}, "breakout": {"max_hold": 30},
+              "rsi2_reversion": {"max_hold": 10, "exit_above_sma5": True}}

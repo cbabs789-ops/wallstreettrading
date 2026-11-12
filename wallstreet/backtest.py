@@ -17,6 +17,28 @@ from .strategies import STRATEGIES, features
 DAY = 86400
 
 
+def simulate_trade(f, e, entry, stop, target, max_hold, exit_above_sma5=False):
+    """Walk one long trade forward from bar e (bought at `entry` on e's open, slippage already in `entry`).
+    Shared by the backtest and the prediction grader so both use identical rules.
+    Returns (exit_index, exit_price_before_slippage, reason) or (None, None, None) if the data ends first."""
+    o, h, l, c = f["open"], f["high"], f["low"], f["close"]
+    n = len(c)
+    for k in range(e, min(n, e + max_hold + 1)):
+        if k > e and o[k] <= stop:
+            return k, o[k], "stop (gap)"
+        if l[k] <= stop:
+            return k, min(stop, o[k]) if k == e else stop, "stop"        # entry bar opening under the stop fills at the open
+        if target and k > e and o[k] >= target:
+            return k, o[k], "target (gap)"
+        if target and h[k] >= target:
+            return k, max(target, o[k]) if k == e else target, "target"  # entry bar opening above the target fills at the open
+        if exit_above_sma5 and f["sma5"][k] and c[k] > f["sma5"][k]:
+            return k, c[k], "closed above 5-day average"
+        if k - e >= max_hold:
+            return k, c[k], "time limit"
+    return None, None, None
+
+
 def trades_for(f, strat, params, i_from, i_to):
     """All trades one symbol would take between bar indexes [i_from, i_to). Exits may run past i_to (to the data end)."""
     fn = STRATEGIES[strat][0]
@@ -33,26 +55,7 @@ def trades_for(f, strat, params, i_from, i_to):
         entry = o[e] * (1 + slip)
         stop = entry - sig["stop_atr"] * a[i]
         target = entry + sig["target_atr"] * a[i] if sig.get("target_atr") else None
-        j, px, why = None, None, None
-        for k in range(e, min(n, e + sig["max_hold"] + 1)):
-            if k > e and o[k] <= stop:
-                j, px, why = k, o[k], "stop (gap)"
-                break
-            if l[k] <= stop:
-                j, px, why = k, stop, "stop"
-                break
-            if target and k > e and o[k] >= target:
-                j, px, why = k, o[k], "target (gap)"
-                break
-            if target and h[k] >= target:
-                j, px, why = k, target, "target"
-                break
-            if sig.get("exit_above_sma5") and f["sma5"][k] and c[k] > f["sma5"][k]:
-                j, px, why = k, c[k], "closed above 5-day average"
-                break
-            if k - e >= sig["max_hold"]:
-                j, px, why = k, c[k], "time limit"
-                break
+        j, px, why = simulate_trade(f, e, entry, stop, target, sig["max_hold"], sig.get("exit_above_sma5"))
         if j is None:
             j, px, why = n - 1, c[n - 1], "open at end of data"
         exit_px = px * (1 - slip)

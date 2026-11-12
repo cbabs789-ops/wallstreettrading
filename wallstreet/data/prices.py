@@ -31,8 +31,12 @@ def fetch_chart(symbol, rng="2y", interval="1d"):
     bars = []
     for i, t in enumerate(ts):
         row = [qt.get(k, [None] * len(ts))[i] for k in ("open", "high", "low", "close", "volume")]
-        if None in row[:4] or row[3] <= 0:
+        if None in row[:4] or min(row[:4]) <= 0:
             continue                                    # holidays, halts and half-built candles come back as nulls
+        o, h, lo, c = (float(x) for x in row[:4])
+        if h < max(o, c) * 0.995 or lo > min(o, c) * 1.005:
+            log.warning("%s: inconsistent bar at %s dropped (o %.2f h %.2f l %.2f c %.2f)", symbol, t, o, h, lo, c)
+            continue
         bars.append((int(t), float(row[0]), float(row[1]), float(row[2]), float(row[3]), float(row[4] or 0)))
     m = r.get("meta") or {}
     meta = {"symbol": m.get("symbol", symbol), "price": m.get("regularMarketPrice"), "quote_time": m.get("regularMarketTime"),

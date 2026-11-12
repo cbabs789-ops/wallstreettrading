@@ -1,0 +1,99 @@
+==========================================================================
+INTEGRATED SIMULATED SESSION (paper only: no code path can place a real order)
+==========================================================================
+
+1) DATA INGESTION
+   Prices: 40 symbols refreshed
+   SEC: 1440 new filings, 1423 insider transaction lines
+   Fed: 20 new releases
+   News: 2511 new headlines (deduplicated)
+   Earnings calendar: 7 dates written
+   Economic calendar: 112 events written
+   Macro: 7 FRED series
+   13F: 48 holdings rows
+   SPY       756.87 · quote time 2026-11-12 10:13 EST · fetched 2026-11-12 10:13 EST · yahoo-chart (unofficial, delayed)
+   CSCO      100.49 · quote time 2026-11-12 10:13 EST · fetched 2026-11-12 10:13 EST · yahoo-chart (unofficial, delayed)
+   ^VIX       18.24 · quote time 2026-11-12 09:58 EST · fetched 2026-11-12 10:13 EST · yahoo-chart (unofficial, delayed)
+   ^TNX        5.06 · quote time 2026-11-12 09:58 EST · fetched 2026-11-12 10:13 EST · yahoo-chart (unofficial, delayed)
+
+2) MARKET REGIME
+   SPY 759.81 vs 50-day 764.96 and 200-day 731.31: mixed · VIX 18.2 (normal)
+   Fed funds rate %: 3.88 (as of 2026-10-01, FRED)
+   CPI inflation, year over year %: 4.08 (as of 2026-10-01, FRED)
+   Unemployment rate %: 4.10 (as of 2026-10-01, FRED)
+   10-year Treasury %: 4.88 (as of 2026-11-09, FRED)
+   10y minus 2y spread: 0.25 (as of 2026-11-10, FRED)
+   Coming: 2026-11-13 PPI (producer prices) for October 2026, 8:30 AM ET
+
+3) OPPORTUNITY SCANNER
+   0 setups in the last 5 trading days across 40 symbols
+   Catalyst leaders: NVDA 60, HD 40, AAPL 35, GOOGL 35, META 35
+   No live setups. Nothing to trade is a valid answer, and the scanner says so.
+   To exercise the rest of the pipeline the session continues with the strongest uptrend, LLY,
+   as a DEMONSTRATION order (strategy 'demo'), not a recommendation.
+
+4) ANALYSIS (rules-based and source-linked; no language model writes these facts)
+
+LLY · score 0/100 · demonstration only (no live setup) (signal on the last close)
+  Price $1443.01 (quote 2026-11-12 10:13 EST, yahoo-chart (unofficial, delayed))
+  Volume 1,872,700 (0.6x its 20-day average)
+  - Trend: up (price 1437.29, 50-day 1230.06, 200-day 1105.21)
+  - RSI 70 (overbought)
+  - MACD above signal
+  - Volume 0.6x its 20-day average
+  - -1.1% from its 52-week high
+  - Nearest support 1163.50, resistance none (at highs)
+  - 3-month return +18.9%, +21.2 points vs the S&P 500
+  - 2026-11-12 Eli Lilly (LLY) Stock Climbs as China Approves First GLP-1 Weight-Loss Pill - Blockonomi [Blockonomi, unconfirmed] https://news.google.com/rss/articles/CBMingFBVV95cUxNNndqOU4xWnRBYmRmOWJqY09QMUw1R0EwQkxWYzhNbnBfNVZvbVFQYS04R1dFc1Qwdjk2VGw2QkN3VEMtQm95Z3ZqbVI2c01HWFppWHBUYXhZMGpVZlpuZXlxVmdoZmRmRDUtb0NRdkQ1bEhjeVlfbHhpNXY1Y2lNSEpGVFdxVTk2NXRiU3gwcVdjVGI0c2w4UUx6OXhtdw?oc=5
+  - 2026-11-12 Premarket movers: Nvidia sinks; Lilly gains on China approval [Yahoo Finance, unconfirmed] https://finance.yahoo.com/markets/stocks/articles/premarket-movers-nvidia-sinks-lilly-121833317.html?.tsrc=rss
+  - 2026-11-12 Baron Funds Sees Eli Lilly’s (LLY) Mounjaro, Zepbound and Orforglipron as Transformational [Yahoo Finance, unconfirmed] https://finance.yahoo.com/healthcare/articles/baron-funds-sees-eli-lilly-113252634.html?.tsrc=rss
+  - 2026-11-12 Can LLY's Expanding Obesity Pipeline Sustain Its GLP-1 Leadership? [Yahoo Finance, unconfirmed] https://finance.yahoo.com/healthcare/articles/llys-expanding-obesity-pipeline-sustain-113000994.html?.tsrc=rss
+  - 2026-11-12 Eli Lilly (LLY) Gains Regulatory Approval in China for Oral GLP-1 Weight-Loss Pill - GuruFocus [GuruFocus, unconfirmed] https://news.google.com/rss/articles/CBMiuAFBVV95cUxQY1hrejlMTDBMZmtLd2pncDY3MTV3aVlyanpDRVJPenB6bkY0QmNscGc3YWpHVEJsdWx3UUltbG5wbzNtNTdGY0FNb2J6OVpXRkhGYWtCUWdjNENxcWtUYnNTMmhfUUpqN1RESzBHdzdZVVIwVTZ0RGtkVTktVkgwRVZfUXpJdnFVazRCb1llYV8ycVowUkktMmU4dDlBOFEyNTFjeVNGdkJpRUQtdmkwS3p4SU5RNF8z?oc=5
+  - 2026-11-12 Eli Lilly Shares Rise 2.8% After China Approves Orforglipron Weight-Loss Pill [Yahoo Finance, unconfirmed] https://investorshub.advfn.com/market-news/article/39869/eli-lilly-shares-rise-2-8-after-china-approves-orforglipron-weight-loss-pill?.tsrc=rss
+  - 13F: Duquesne Family Office LLC: 12,380 shares as of 2026-06-30 (filed 2026-08-14; new position). Quarter-end snapshot, not a current position.
+  Bull case: n/a (demo)
+  Bear case: n/a (demo)
+  Entry zone 1443.01-1443.01 · stop 1350.21 · targets 1582.21 · reward/risk 1.5
+  Confidence: none: demonstration order
+  Could fail because: No strategy signal; this order only tests the pipeline
+
+5) RISK DEPARTMENT
+   Equity $10000.00 · sized to 0.6926 shares at about 1443.73 (risking 0.65% at the stop, position 10.0% of account)
+   Checks: kill switch, daily loss, open positions, position size, cash, stop, loss per trade, sector, correlation
+   Verdict: APPROVED
+   Same trade at 3x size: REJECTED: LLY would be 30.0% of the account, over the 10% per-position limit; a stop-out would lose 1.94% of the account, over the 1.0% per-trade limit
+
+6) BACKTEST EVIDENCE (walk-forward; test window never used for fitting)
+   Dip buy in an uptrend                          FAIL test:  95 trades, win 33%, avg -0.00%, PF 1.00, return -0%, worst -10% | SPY +41%
+   20-day breakout on volume                      PASS test: 116 trades, win 39%, avg +2.35%, PF 1.85, return +30%, worst -9% | SPY +41%
+   Short-term oversold bounce above the 200-day   PASS test: 360 trades, win 66%, avg +0.52%, PF 1.46, return +20%, worst -7% | SPY +41%
+
+7) SIMULATED ORDER
+   FILLED: buy LLY x0.6926 at 1443.73 
+   Same order resent (network retry): ignored, no second fill
+
+8) PORTFOLIO
+   Cash $9000.07 · equity $9999.50 · total return -0.00% · drawdown 0.00%
+   LLY x0.6926 @ 1443.73 · last 1443.01 · stop 1350.21 · target 1582.21 · P&L $-0.50
+   Exit check: 0 positions closed
+
+9) PERFORMANCE INTELLIGENCE
+   Live predictions: 0 graded now, 0 open (live calls need days to play out)
+   Replay: scanner re-run on every day of the test window: 908 historical calls
+   Replay graded: 907 graded · win 57% · avg +0.51% · median +0.44% · avg R +0.04 · SPY same days +0.31% · avg held 4.5 days
+     breakout         n= 155 win 34% avg +1.31% | drift check: consistent with backtest
+     rsi2_reversion   n= 654 win 66% avg +0.42% | drift check: consistent with backtest
+     trend_pullback   n=  98 win 31% avg -0.17% | drift check: consistent with backtest
+     score 40-55  n= 304 win 64% avg +0.19%
+     score 55-70  n= 515 win 57% avg +0.65%
+     score 70-100 n=  88 win 32% avg +0.80%
+   Within each strategy, the score did NOT predict results [rank correlation breakout 0.02 (p=0.82, n=155), rsi2_reversion -0.05 (p=0.17, n=654), trend_pullback -0.09 (p=0.37, n=98)]. Treat it as a checklist of the evidence, not a forecast: a 75 is not more likely to work than a 60 from the same strategy.
+   Monthly report: /tmp/claude-0/-home-claude/144f54e2-fd3e-5c99-971d-40906a7b47be/scratchpad/pws-final/reports/performance_2026-11.md
+
+10) DASHBOARD AND BRIEFING
+   Alerts: 0 new (deduplicated; rerunning creates none)
+   Alerts on an immediate rerun: 0
+   Briefing: /tmp/claude-0/-home-claude/144f54e2-fd3e-5c99-971d-40906a7b47be/scratchpad/pws-final/reports/briefing_2026-11-12.md
+   Dashboard snapshot: /tmp/claude-0/-home-claude/144f54e2-fd3e-5c99-971d-40906a7b47be/scratchpad/pws-final/reports/dashboard.html (live view: python -m wallstreet dashboard)
+
+   Records: orders 1, predictions 908, alerts 0, audit 3, equity 3, events 2650, filings 1440

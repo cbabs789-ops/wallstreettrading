@@ -7,7 +7,7 @@ import unittest
 os.environ.setdefault("PWS_DATA_DIR", tempfile.mkdtemp())
 
 from wallstreet import db  # noqa: E402
-from wallstreet.data import fed, prices, sec  # noqa: E402
+from wallstreet.data import calendar, fed, news, prices, sec, thirteenf  # noqa: E402
 
 
 @unittest.skipUnless(os.environ.get("PWS_LIVE"), "set PWS_LIVE=1 to hit real data sources")
@@ -39,3 +39,22 @@ class Live(unittest.TestCase):
     def test_fed_feed(self):
         self.assertGreaterEqual(fed.refresh(self.con), 1)
         self.assertEqual(fed.refresh(self.con), 0, "duplicate Fed events")
+
+    def test_news_relevant_and_deduplicated(self):
+        items = news.fetch("MSFT", sec.title_for("MSFT"))
+        self.assertGreater(news.store(self.con, "MSFT", items, sec.title_for("MSFT")), 0)
+        self.assertEqual(news.store(self.con, "MSFT", items, sec.title_for("MSFT")), 0, "duplicate headlines")
+        titles = [r[0] for r in self.con.execute("SELECT title FROM events WHERE kind='news' AND symbol='MSFT'")]
+        self.assertTrue(all(news.relevant(t, "MSFT", news.names_for("MSFT")) for t in titles))
+
+    def test_calendars_and_macro(self):
+        self.assertGreater(calendar.refresh_economic(self.con), 3)
+        m = calendar.refresh_macro(self.con)
+        self.assertIn("DGS10", m)
+        self.assertTrue(0 < m["DGS10"]["value"] < 20)
+        calendar.refresh_earnings(self.con, ["AAPL", "MSFT", "NVDA", "WMT", "HD", "CSCO", "CRM"], days=10)
+
+    def test_13f(self):
+        self.assertGreater(thirteenf.refresh(self.con, {"AAPL", "KO", "AMZN", "GOOGL"}), 0)
+        h = thirteenf.for_symbol(self.con, "AAPL")
+        self.assertTrue(h and all(("not a current position" in x["text"]) or x["stale"] for x in h))

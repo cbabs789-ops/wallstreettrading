@@ -18,8 +18,11 @@ class DataError(RuntimeError):
     """A data source failed or returned something unusable."""
 
 
-_LIMITS = {"sec.gov": 0.12, "data.sec.gov": 0.12, "query1.finance.yahoo.com": 0.25, "query2.finance.yahoo.com": 0.25}
+_LIMITS = {"sec.gov": 0.12, "data.sec.gov": 0.12, "query1.finance.yahoo.com": 0.25, "query2.finance.yahoo.com": 0.25,
+           "news.google.com": 0.6, "feeds.finance.yahoo.com": 0.4, "api.nasdaq.com": 0.5, "fred.stlouisfed.org": 0.3,
+           "bls.gov": 1.0, "federalreserve.gov": 0.5}
 _last = {}
+MAX_BYTES = 40 << 20                                      # SEC company facts for mega caps run ~15 MB; nothing legit is bigger
 _lock = threading.Lock()
 
 
@@ -36,7 +39,9 @@ def _throttle(host):
 
 def get(url, kind="json", headers=None, timeout=20, retries=3):
     host = url.split("/")[2]
-    h = {"User-Agent": config.SEC_USER_AGENT if "sec.gov" in host else config.HTTP_USER_AGENT,
+    # Government sources (SEC, FRED, BLS) want a descriptive agent with contact details; FRED silently drops others.
+    gov = any(host.endswith(d) for d in ("sec.gov", "stlouisfed.org", "bls.gov", "federalreserve.gov"))
+    h = {"User-Agent": config.SEC_USER_AGENT if gov else config.HTTP_USER_AGENT,
          "Accept-Encoding": "identity"}
     h.update(headers or {})
     err = None
@@ -44,7 +49,9 @@ def get(url, kind="json", headers=None, timeout=20, retries=3):
         _throttle(host)
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=timeout) as r:
-                body = r.read()
+                body = r.read(MAX_BYTES + 1)
+            if len(body) > MAX_BYTES:
+                raise DataError("%s: response over %d MB, refused" % (host, MAX_BYTES >> 20))
             if kind == "json":
                 return json.loads(body)
             return body.decode("utf-8", "replace")
@@ -53,6 +60,8 @@ def get(url, kind="json", headers=None, timeout=20, retries=3):
             if e.code in (400, 401, 403, 404):
                 break                                   # retrying won't help
             time.sleep(min(2 ** attempt * 2, 20))
+        except DataError:
+            raise
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
             err = str(e)[:200]
             time.sleep(min(2 ** attempt * 2, 20))
