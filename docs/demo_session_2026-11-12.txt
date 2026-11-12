@@ -1,0 +1,72 @@
+======================================================================
+SIMULATED TRADING SESSION (paper only, no real orders possible)
+======================================================================
+
+1) Market data entering the platform
+Prices: 40 symbols refreshed
+SEC: 1440 new filings, 1423 insider transaction lines
+Fed: 20 new releases
+   SPY $759.81 · quote time 2026-11-11 16:00 EST · fetched 2026-11-12 09:09 EST · yahoo-chart (unofficial, delayed)
+   CSCO $100.76 · quote time 2026-11-11 16:00 EST · fetched 2026-11-12 09:09 EST · yahoo-chart (unofficial, delayed)
+   ^VIX $18.77 · quote time 2026-11-12 08:56 EST · fetched 2026-11-12 09:11 EST · yahoo-chart (unofficial, delayed)
+
+2) Market regime
+   S&P 500 (SPY) 759.81 vs 50-day 764.96 and 200-day 731.31: mixed · VIX 18.8 (normal)
+
+3) Strategy lab (walk-forward)
+
+Dip buy in an uptrend (trend_pullback) · parameters chosen on train only: {'rsi': 45, 'stop_atr': 1.5, 'target_atr': 3.0} · FAIL
+  train      2017-08-31 to 2022-04-07  242 trades · win 41% · avg +0.60%/trade · profit factor 1.30 · return +14% · worst drop -9% · Sharpe 0.48  | SPY +80% (worst -34%)
+  validation 2022-04-07 to 2024-07-24   85 trades · win 36% · avg -0.05%/trade · profit factor 0.98 · return +0% · worst drop -7% · Sharpe 0.06  | SPY +21% (worst -21%)
+  test       2024-07-24 to 2026-11-11   95 trades · win 33% · avg -0.00%/trade · profit factor 1.00 · return -0% · worst drop -10% · Sharpe 0.01  | SPY +41% (worst -19%)
+
+20-day breakout on volume (breakout) · parameters chosen on train only: {'relvol': 1.8, 'stop_atr': 1.5, 'target_atr': 5.0} · PASS
+  train      2017-08-31 to 2022-04-07  277 trades · win 38% · avg +1.33%/trade · profit factor 1.60 · return +43% · worst drop -7% · Sharpe 1.12  | SPY +80% (worst -34%)
+  validation 2022-04-07 to 2024-07-24  106 trades · win 42% · avg +2.27%/trade · profit factor 1.92 · return +25% · worst drop -5% · Sharpe 1.21  | SPY +21% (worst -21%)
+  test       2024-07-24 to 2026-11-11  116 trades · win 39% · avg +2.35%/trade · profit factor 1.85 · return +30% · worst drop -9% · Sharpe 1.35  | SPY +41% (worst -19%)
+
+Short-term oversold bounce above the 200-day (rsi2_reversion) · parameters chosen on train only: {'rsi2': 5, 'stop_atr': 3.0} · PASS
+  train      2017-08-31 to 2022-04-07  693 trades · win 67% · avg +0.37%/trade · profit factor 1.35 · return +28% · worst drop -9% · Sharpe 0.63  | SPY +80% (worst -34%)
+  validation 2022-04-07 to 2024-07-24  279 trades · win 70% · avg +0.60%/trade · profit factor 1.64 · return +18% · worst drop -5% · Sharpe 1.13  | SPY +21% (worst -21%)
+  test       2024-07-24 to 2026-11-11  360 trades · win 66% · avg +0.52%/trade · profit factor 1.46 · return +20% · worst drop -7% · Sharpe 0.88  | SPY +41% (worst -19%)
+
+4) Scanner
+   0 setups fired in the last 5 trading days out of 40 symbols
+   No live setups right now. Nothing to trade is a valid answer, and the scanner says so.
+   To exercise the rest of the pipeline, the demo continues with the strongest uptrend on the list, LLY.
+   This is a DEMONSTRATION order (strategy 'demo'), not a recommendation.
+
+5) Analysis of the top candidate
+
+LLY · score 0/100 · demonstration only (no live setup) (signal on the last close)
+  Price $1437.29 (quote 2026-11-11 16:03 EST, yahoo-chart (unofficial, delayed))
+  Volume 1,872,700 (0.6x its 20-day average)
+  - Trend: up (price 1437.29, 50-day 1230.06, 200-day 1105.21)
+  - RSI 70 (overbought)
+  - MACD above signal
+  - Volume 0.6x its 20-day average
+  - -1.1% from its 52-week high
+  - Nearest support 1163.50, resistance none (at highs)
+  - 3-month return +18.9%, +21.2 points vs the S&P 500
+  Bull case: n/a (demo)
+  Bear case: n/a (demo)
+  Entry zone 1437.29-1437.29 · stop 1344.49 · targets 1576.49 · reward/risk 1.5
+  Confidence: none: demonstration order
+  Could fail because: No strategy signal; this order only tests the pipeline
+
+6) Risk engine
+   Equity $10000.00 · sized to 0.6954 shares (risking 0.65% if stopped) · APPROVED
+
+7) Simulated order
+   FILLED: buy LLY x0.6954 at 1438.01 · ok
+   Same order sent again: ignored (order #1, no second fill)
+
+8) Portfolio
+   Cash $9000.01 · equity $9999.50 · total return -0.00% · drawdown 0.00%
+   LLY x0.6954 @ 1438.01 · stop 1344.49 · target 1576.49 · P&L $-0.50
+
+9) Performance records
+   orders: 1 rows
+   predictions: 0 rows
+   audit: 3 rows
+   equity: 2 rows
