@@ -25,7 +25,7 @@ python3 -m wallstreet demo                                     # the full 10-ste
 On an Ubuntu server (a fresh $4-6 one, or the same one Gatekeeper runs on: it uses about 100 MB of memory), as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cbabs789-ops/wallstreet/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/cbabs789-ops/wallstreettrading/main/install.sh | sudo bash
 ```
 
 It asks for four things, typed on the server and never in a chat:

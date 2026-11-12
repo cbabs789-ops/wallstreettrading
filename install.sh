@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Wall Street installer for an Ubuntu server (a fresh one, or the same one Gatekeeper runs on).
-#   curl -fsSL https://raw.githubusercontent.com/cbabs789-ops/wallstreet/main/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/cbabs789-ops/wallstreettrading/main/install.sh | sudo bash
 # Paper trading only. Keys are typed here and stored only on this server, in /etc/wallstreet.env.
 set -euo pipefail
 
-REPO="${WALLSTREET_REPO:-https://github.com/cbabs789-ops/wallstreet.git}"
+REPO="${WALLSTREET_REPO:-https://github.com/cbabs789-ops/wallstreettrading.git}"
 APP=/opt/wallstreet
 DATA=/var/lib/wallstreet
 ENVF=/etc/wallstreet.env
