@@ -39,7 +39,7 @@ KEY="$(get PWS_DASH_KEY)"; STOK="$(get PWS_STATS_TOKEN)"; SREPO="$(get PWS_STATS
 
 if [ -z "$UA" ]; then
   echo "The SEC and the Fed's data site require a name and contact email on every request."
-  printf 'Your name and email (for example: Collin Babcock collin@example.com): '
+  printf 'Your name and email (for example: Jane Doe jane@example.com): '
   read -r UA < /dev/tty
 fi
 echo
